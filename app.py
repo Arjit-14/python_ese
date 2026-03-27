@@ -8,7 +8,6 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# --- INITIALIZATION ---
 @st.cache_resource
 def download_nltk_resources():
     try:
@@ -32,16 +31,13 @@ ensure_nltk_resources()
 
 def process_feedback(text_series):
     try:
-        # Stopwords and Stemmer setup
         stop_words = set(stopwords.words('english'))
         ps = PorterStemmer()
         all_stems = []
         
         for text in text_series:
             if pd.isna(text): continue
-            # Tokenization (Unit 4 requirement) [cite: 14]
             tokens = word_tokenize(str(text).lower())
-            # Clean and Stem [cite: 14]
             stems = [ps.stem(w) for w in tokens if w.isalpha() and w not in stop_words]
             all_stems.extend(stems)
         
@@ -50,7 +46,6 @@ def process_feedback(text_series):
             
         return pd.Series(all_stems).value_counts().head(10)
     except Exception as e:
-        # This will print the actual error to your Streamlit logs
         print(f"NLP Error: {e}")
         return pd.Series()
 
@@ -62,14 +57,12 @@ def load_data():
 
 df = load_data()
 
-# --- 2. DASHBOARD SETUP & FILTERS ---
 st.set_page_config(page_title="GATEWAYS 2025 Dashboard", layout="wide") 
 
 st.sidebar.header("Filter Insights")
 selected_event = st.sidebar.multiselect("Select Event", options=df["Event Name"].unique(), default=df["Event Name"].unique())
 selected_state = st.sidebar.multiselect("Select State", options=df["State"].unique(), default=df["State"].unique())
 
-# .copy() fixes the SettingWithCopyWarning
 filtered_df = df[(df["Event Name"].isin(selected_event)) & (df["State"].isin(selected_state))].copy()
 
 st.title("GATEWAYS 2025 - National Level Fest Insights")
@@ -85,9 +78,7 @@ with kpi3:
 
 st.divider()
 
-# --- 3. PART 1: PARTICIPATION TRENDS & MAP ---
 st.header("1. Analysis of Participation Trends")
-# Added 'College-wise Analysis' tab
 tab1, tab_college, tab2 = st.tabs(["Event Distribution", "College-wise Analysis", "State-wise India Map"])
 
 with tab1:
@@ -100,15 +91,13 @@ with tab1:
 
 with tab_college:
     st.subheader("Top 10 Participating Colleges")
-    # Calculation for college-wise trends 
     college_counts = filtered_df['College'].value_counts().head(10)
     
     if not college_counts.empty:
         fig_coll, ax_coll = plt.subplots()
-        # Horizontal bar chart for better readability of college names
         college_counts.plot(kind='barh', color='orchid', ax=ax_coll)
         ax_coll.set_xlabel("Number of Participants")
-        ax_coll.invert_yaxis()  # Highest on top
+        ax_coll.invert_yaxis()  
         st.pyplot(fig_coll)
     else:
         st.write("No college data available.")
@@ -118,10 +107,8 @@ with tab2:
     state_data = filtered_df.groupby('State').size().reset_index(name='Counts')
     
     if not state_data.empty:
-        # Create a horizontal bar chart which acts as a 'ranked' map analysis
         fig_map, ax_map = plt.subplots(figsize=(10, 6))
         
-        # Sort data to show the 'Trend' (L4 Analysis requirement)
         state_data = state_data.sort_values(by='Counts', ascending=True)
         
         colors = plt.cm.Reds(np.linspace(0.3, 0.9, len(state_data)))
@@ -130,19 +117,16 @@ with tab2:
         ax_map.set_title("Participant Distribution Across India")
         ax_map.set_xlabel("Number of Students")
         
-        # Add labels to the bars for "Actionable Insights"
         for i, v in enumerate(state_data['Counts']):
             ax_map.text(v + 0.5, i, str(v), color='black', fontweight='bold')
             
         st.pyplot(fig_map)
         
-        # Mandatory ESE Insight
         top_state = state_data.iloc[-1]['State']
         st.success(f"📍 **Geospatial Insight:** {top_state} is the primary hub for GATEWAYS 2025.")
     else:
         st.write("Select a state from the sidebar to view the distribution.")
 
-# --- 4. PART 2: FEEDBACK & SENTIMENT ANALYSIS ---
 st.header("2. Participant Feedback & Sentiment Analysis")
 
 tab_rating, tab_sentiment, tab_words = st.tabs(["⭐ Rating Overview", "🎭 Sentiment Analysis", "🔤 Keyword Trends"])
@@ -154,7 +138,6 @@ with tab_rating:
     if not rating_counts.empty:
         fig_pie, ax_pie = plt.subplots(figsize=(6, 6))
         
-        # Custom function to display both Count and Percentage
         def make_autopct(values):
             def my_autopct(pct):
                 total = sum(values)
@@ -162,7 +145,6 @@ with tab_rating:
                 return f'{val}\n({pct:.1f}%)'
             return my_autopct
 
-        # Modern Donut Chart
         wedges, texts, autotexts = ax_pie.pie(
             rating_counts, 
             labels=rating_counts.index, 
@@ -173,11 +155,9 @@ with tab_rating:
             textprops={'fontsize': 10}
         )
         
-        # Adding the center circle for the "Donut" look
         centre_circle = plt.Circle((0,0), 0.70, fc='white')
         fig_pie.gca().add_artist(centre_circle)
         
-        # Styling the labels inside the pie
         plt.setp(autotexts, size=9, weight="bold")
         
         ax_pie.set_title(f"Total Ratings: {len(filtered_df)}", pad=20)
@@ -200,7 +180,6 @@ with tab_sentiment:
         sentiment_counts = filtered_df['Sentiment'].value_counts()
         
         fig_sent, ax_sent = plt.subplots()
-        # Ensure colors match the sentiment found
         color_map = {'Positive': '#2ecc71', 'Neutral': '#f1c40f', 'Negative': '#e74c3c'}
         current_colors = [color_map[s] for s in sentiment_counts.index]
         
