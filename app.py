@@ -20,18 +20,38 @@ def download_nltk_resources():
 
 download_nltk_resources()
 
-# --- NLP HELPER FUNCTION (Fixes the NameError) ---
+def ensure_nltk_resources():
+    resources = ['punkt', 'stopwords', 'vader_lexicon', 'punkt_tab']
+    for res in resources:
+        try:
+            nltk.download(res, quiet=True)
+        except:
+            pass
+
+ensure_nltk_resources()
+
 def process_feedback(text_series):
     try:
+        # Stopwords and Stemmer setup
         stop_words = set(stopwords.words('english'))
         ps = PorterStemmer()
         all_stems = []
+        
         for text in text_series:
+            if pd.isna(text): continue
+            # Tokenization (Unit 4 requirement) [cite: 14]
             tokens = word_tokenize(str(text).lower())
+            # Clean and Stem [cite: 14]
             stems = [ps.stem(w) for w in tokens if w.isalpha() and w not in stop_words]
             all_stems.extend(stems)
+        
+        if not all_stems:
+            return pd.Series()
+            
         return pd.Series(all_stems).value_counts().head(10)
-    except:
+    except Exception as e:
+        # This will print the actual error to your Streamlit logs
+        print(f"NLP Error: {e}")
         return pd.Series()
 
 # --- 1. DATA LOADING ---
